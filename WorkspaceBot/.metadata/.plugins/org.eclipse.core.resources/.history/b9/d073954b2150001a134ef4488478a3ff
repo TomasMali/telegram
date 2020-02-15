@@ -1,0 +1,228 @@
+package CallMatches;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Stream;
+
+import org.telegram.telegrambots.api.methods.send.SendDocument;
+import org.telegram.telegrambots.api.methods.send.SendMessage;
+import org.telegram.telegrambots.api.objects.Update;
+import org.telegram.telegrambots.api.objects.replykeyboard.InlineKeyboardMarkup;
+import org.telegram.telegrambots.api.objects.replykeyboard.buttons.InlineKeyboardButton;
+import org.telegram.telegrambots.exceptions.TelegramApiException;
+
+import ConnectionDB.Queries;
+import DAO.User;
+import Schedulers.Builder;
+
+public class CommandsMatches {
+	public static Long mio = (long) 145645559;
+
+	public static void SendDocument(Commands sc, Update update) {
+		try {
+
+			SendDocument sendDocumentRequest = new SendDocument();
+			sendDocumentRequest.setChatId(update.getMessage().getChatId());
+			sendDocumentRequest.setNewDocument(new File(
+					"/Users/tomas/Downloads/MN-2020-01-13Ore14.00-Analisi-260120-1405-3.pdf"));
+			sendDocumentRequest.setCaption("Doc");
+			sc.sendDocument(sendDocumentRequest);
+
+		} catch (TelegramApiException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Register a user in pending state
+	 * 
+	 * @param id
+	 */
+	public static void RegisterUserInPending(Long id, Long adminId) {
+
+		Queries.RegisterPendings(id);
+
+		// Notify the normal user
+		Builder.CreateKeyboard(id, false);
+		// Notify the admin user
+		Builder.SendMessage(Builder.ComposeMessage("L'utente registrato correttamete", adminId));
+
+	}
+
+	/**
+	 * Return all the users in pending state
+	 * 
+	 * @param sc
+	 * @param update
+	 */
+	public static void Pendings(Commands sc, Update update) {
+
+		Stream<User> pendingUsers = Queries.getNormalUsers().stream().filter(u -> u.getPending());
+
+		SendMessage message = Builder.ComposeMessage(pendingUsers.count() <=0 ? "Clicka su un utente per poterlo registrare" : "Nessun utente in attesa" , null);
+
+		InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+		List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+		List<InlineKeyboardButton> rowInline = new ArrayList<>();
+
+		pendingUsers.forEach(u -> {
+			// Bisogna fare il parsing con la Callback query
+			rowInline.add(new InlineKeyboardButton().setText(u.getName() + " " + u.getSurname()).setCallbackData(
+					"pending" + u.getUserID()));
+		});
+
+		// Set the keyboard to the markup
+		rowsInline.add(rowInline);
+		// Add it to the message
+		markupInline.setKeyboard(rowsInline);
+		message.setReplyMarkup(markupInline);
+		try {
+			sc.execute(message); // Sending our message object to user
+		} catch (TelegramApiException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	/**
+	 * Match: .* Register the user always like not admin and pending
+	 */
+	public static void welcome(Update update) {
+
+		String benvenuti = "Benvenuti a questo Bot, un utente amministratore si occuperà a registrarti il prima possibile per utilizzare questo Bot";
+		String useerAlreadyExists = "Utente già registrato!";
+
+		// insert the user to DB
+		Long chatId = update.getMessage().getChatId();
+		String name = update.getMessage().getFrom().getFirstName();
+		String surname = update.getMessage().getFrom().getLastName();
+
+		User user = new User(chatId, name, surname, false, true);
+
+		if (Queries.getUserIfExsist(chatId) == null) {
+			Queries.InsertUser(user);
+			Builder.SendMessage(Builder.ComposeMessage(benvenuti, null));
+			// Send the message in broadcast to all admin users
+			Queries.getAdminUsers().forEach(u -> {
+				Builder.SendMessage(Builder.ComposeMessage(
+						"Un utente ha chiesto di essere registrato alla WhiteList, entra nel menu Pending per registrarlo",
+						u.getUserID()));
+			});
+
+		} else
+			Builder.SendMessage(Builder.ComposeMessage(useerAlreadyExists, null));
+	}
+
+	/**
+	 * Metodo che registra uno nuovo user, nel caso quest'ultimo esistesse già, viene mandato un messaggio di notifica
+	 * all'utente
+	 * 
+	 * @param sc
+	 * @param update
+	 */
+	public static void UserRegistration(Commands sc, Update update) {
+		if (Queries.getUserIfExsist(update.getMessage().getChatId()) == null) {
+			try {
+				sc.execute(new SendMessage().setChatId(update.getMessage().getChatId()).setText(
+						"Utente già esistente"));
+			} catch (TelegramApiException e) {
+				e.printStackTrace();
+			}
+		} else {
+
+			try {
+				Long chat_id = update.getMessage().getChatId();
+				sc.execute(new SendMessage().setChatId(chat_id).setText("Utente registrato correttamente!"));
+				createInlineKeyboardLinks(sc, update);
+
+			} catch (TelegramApiException e) {
+				e.printStackTrace();
+			}
+		}
+
+	}
+
+	/**
+	 * Mostra la lista dei siti da controllare
+	 * 
+	 * @param sc
+	 * @param update
+	 */
+	public static void createInlineKeyboardLinks(Commands sc, Update update) {
+		Long chat_id = update.getMessage().getChatId();
+		List<String> links = Arrays.asList("Ciao", "Uno", "Due", "Ciao tre dfvs");
+		if (!links.isEmpty()) {
+			InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+			List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+			SendMessage message2 = new SendMessage().setChatId(chat_id).setText(
+					"Adesso puoi scegliere i siti da controllare");
+			for (String link : links) {
+				List<InlineKeyboardButton> rowInline = new ArrayList<>();
+				rowInline.add(new InlineKeyboardButton().setText(link));
+				rowsInline.add(rowInline);
+
+			}
+
+			markupInline.setKeyboard(rowsInline);
+			message2.setReplyMarkup(markupInline);
+			try {
+				sc.execute(message2);
+			} catch (TelegramApiException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				sc.execute(new SendMessage().setChatId(chat_id).setText("Non esistono più siti da mostrare!"));
+			} catch (TelegramApiException e) {
+				e.printStackTrace();
+			}
+		}
+
+	}
+
+	/**
+	 * Metodo che notifica solo l'amministratore che un sito è stato modificato con errore 404
+	 * 
+	 * @param sc
+	 * @param descriptionLink
+	 */
+	public static void createInlineKeyboardForUserSendingMessage(Commands sc, String descriptionLink) {
+		Long chat_id = mio;
+		List<String> links = Arrays.asList("Ciao", "Uno", "Due", "Ciao tre dfvs");
+
+		InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
+		List<List<InlineKeyboardButton>> rowsInline = new ArrayList<>();
+		SendMessage message2 = new SendMessage().setChatId(chat_id).setText("***Controlla il sito: '" + descriptionLink
+				+ "'  per aggiornamenti poi decidi se mandare notifiche***");
+
+		List<InlineKeyboardButton> rowInline = new ArrayList<>();
+		rowInline.add(new InlineKeyboardButton().setText(links.get(0)));
+		rowsInline.add(rowInline);
+
+		markupInline.setKeyboard(rowsInline);
+		message2.setReplyMarkup(markupInline);
+		try {
+			sc.execute(message2);
+		} catch (TelegramApiException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	/**
+	 * Metodo che notifica che sei abilitato correttamente per il link scelto
+	 * 
+	 * @param sc
+	 * @param update
+	 * @param idLink
+	 */
+	public static void createAbilitazione(Commands sc, Update update, Long idLink) {
+		update.getCallbackQuery().getMessage().getChatId();
+		long message_id = update.getCallbackQuery().getMessage().getMessageId();
+		long chat_id = update.getCallbackQuery().getMessage().getChatId();
+
+	}
+
+}

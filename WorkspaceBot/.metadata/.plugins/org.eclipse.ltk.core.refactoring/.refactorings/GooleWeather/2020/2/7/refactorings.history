@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Extract local variable &apos;pendingUsers&apos; from expression &apos;Queries.getNormalUsers().stream().filter(u -&gt; u.getPending()).collect(Collectors.toList())&apos;&#x0A;- Original project: &apos;GooleWeather&apos;&#x0A;- Variable name: &apos;pendingUsers&apos;&#x0A;- Destination method: &apos;CallMatches.CommandsMatches.Pendings()&apos;&#x0A;- Variable expression: &apos;Queries.getNormalUsers().stream().filter(u -&gt; u.getPending()).collect(Collectors.toList())&apos;&#x0A;- Replace occurrences of expression with variable" description="Extract local variable &apos;pendingUsers&apos;" final="false" id="org.eclipse.jdt.ui.extract.temp" input="/src&lt;CallMatches{CommandsMatches.java" name="pendingUsers" replace="true" selection="1709 90" stamp="1581791747906" varType="false" version="1.0"/>
+</session>

@@ -1,0 +1,22 @@
+INDEX VERSION 1.131+/Users/tomas/Desktop/telegram/WorkspaceBot/.metadata/.plugins/org.eclipse.jdt.core
+3760443688.index
+1060592389.index
+1536704294.index
+92096930.index
+1271342938.index
+3725031683.index
+3179961119.index
+2525146264.index
+92724249.index
+524126782.index
+1856221.index
+2881411695.index
+582069965.index
+1569440211.index
+3014209124.index
+3795944265.index
+1398790434.index
+1544200994.index
+3435234828.index
+3609919422.index
+3583031408.index
